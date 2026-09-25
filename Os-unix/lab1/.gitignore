@@ -1,0 +1,7 @@
+*.c
+*.cpp
+*.cxx
+*.C
+*.tex
+
+*.exe
