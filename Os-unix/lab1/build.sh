@@ -24,7 +24,12 @@ fi
 INPUT_ABS="$(cd "$(dirname "$INPUT_FILE")" && pwd)/$(basename "$INPUT_FILE")"
 INPUT_DIR="$(dirname "$INPUT_ABS")"
 
-OUTPUT_NAME=$(sed -n -e 's/.*[Oo]utput:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$INPUT_FILE" | head -n 1)
+# Поиск директивы Output: с поддержкой комментариев C/C++ и TeX
+OUTPUT_NAME=$(sed -n -e 's/^[[:space:]]*\(\/\/\|\/\*\|\*\|%\)[[:space:]]*[Oo]utput:[[:space:]]*\([^[:space:]]*\).*/\2/p' "$INPUT_FILE" | head -n 1)
+
+if [ -z "$OUTPUT_NAME" ]; then
+    OUTPUT_NAME=$(sed -n -e 's/.*[Oo]utput:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$INPUT_FILE" | head -n 1)
+fi
 
 if [ -z "$OUTPUT_NAME" ]; then
     printf "Ошибка: Директива 'Output: <имя_файла>' не найдена в файле '%s'.\n" "$INPUT_FILE" >&2
@@ -49,10 +54,13 @@ cd "$BUILD_DIR"
 
 case "$SRC_BASE" in
     *.c)
-        # Имитируем успешную компиляцию: просто создаем готовый файл
-        echo "Это скомпилированная программа" > "$OUTPUT_NAME"
+        CC="${CC:-gcc}"
+        if ! "$CC" -O2 -Wall "$SRC_BASE" -o "$OUTPUT_NAME"; then
+            printf "Ошибка: Сборка файла C завершилась с ошибкой.\n" >&2
+            exit "$ERR_BUILD_FAILED"
+        fi
         ;;
-    *.cpp|*.cxx|*.cc)
+    *.cpp|*.cxx|*.cc|*.C)
         CXX="${CXX:-g++}"
         if ! "$CXX" -O2 -Wall "$SRC_BASE" -o "$OUTPUT_NAME"; then
             printf "Ошибка: Сборка файла C++ завершилась с ошибкой.\n" >&2
@@ -65,7 +73,7 @@ case "$SRC_BASE" in
             printf "Ошибка: Компиляция TeX документа завершилась с ошибкой.\n" >&2
             exit "$ERR_BUILD_FAILED"
         fi
-        
+
         if [ "$TEX_BASE.pdf" != "$OUTPUT_NAME" ]; then
             mv "$TEX_BASE.pdf" "$OUTPUT_NAME"
         fi
