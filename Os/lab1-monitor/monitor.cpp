@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <iostream>
 
-// Условное событие: несериализуемые данные, передаются по указателю
 class Event
 {
 public:
@@ -13,7 +12,6 @@ public:
 class Monitor
 {
 public:
-    // Поставщик: false, если предыдущее событие ещё не обработано
     bool provide(Event *event)
     {
         pthread_mutex_lock(&mutex);
@@ -30,7 +28,6 @@ public:
         return true;
     }
 
-    // Потребитель: ожидание без нагрузки на процессор
     void consume()
     {
         pthread_mutex_lock(&mutex);
