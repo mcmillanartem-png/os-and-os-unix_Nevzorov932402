@@ -6,8 +6,10 @@ LOCK="$DIR/.lock"
 ID=$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')
 N=0
 STOP=
+FILE=
 
 trap 'STOP=1' TERM INT
+trap '[ -z "$FILE" ] || rm -f "$FILE"' EXIT
 
 exec 9>"$LOCK"
 
@@ -32,6 +34,7 @@ while [ -z "$STOP" ]; do
     printf '%s %s\n' "$ID" "$N" > "$FILE"
     sleep 1
     rm -f "$FILE"
+    FILE=
     [ -z "$STOP" ] || break
     sleep 1
 done
