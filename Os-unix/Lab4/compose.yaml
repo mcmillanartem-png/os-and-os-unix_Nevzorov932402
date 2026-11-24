@@ -1,0 +1,17 @@
+services:
+  broker:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+
+  worker:
+    build: .
+    command: python -u /worker.py
+    depends_on: {broker: {condition: service_healthy}}
+    deploy: {replicas: 3}
+
+  controller:
+    build: .
+    command: python -u /controller.py
+    depends_on: {broker: {condition: service_healthy}}
