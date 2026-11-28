@@ -1,3 +1,4 @@
+import signal
 import socket
 import time
 
@@ -6,8 +7,22 @@ import redis
 r = redis.Redis(host="broker", decode_responses=True)
 me = socket.gethostname()
 
-while True:
-    n = r.blmove("tasks", "processing", 0, "RIGHT", "LEFT")  # задача не теряется
-    time.sleep(1)                                             # имитация работы
+running = True
+
+def stop(signum, frame):
+    global running
+    running = False
+    print(f"{me}: получен сигнал {signum}, завершаю после текущей задачи")
+
+signal.signal(signal.SIGTERM, stop)
+signal.signal(signal.SIGINT, stop)
+
+while running:
+    item = r.brpop("tasks", timeout=1)
+    if item is None:
+        continue
+    _, n = item
+    time.sleep(1)
     r.lpush("results", f"{n}^2 = {int(n) ** 2}  (выполнил {me})")
-    r.lrem("processing", 1, n)                                # удаляем после записи результата
+
+print(f"{me}: остановлен")

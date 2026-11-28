@@ -1,17 +1,24 @@
 services:
   broker:
     image: redis:7-alpine
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 1s
+      timeout: 3s
+      retries: 10
 
   worker:
     build: .
     command: python -u /worker.py
+    restart: unless-stopped
     depends_on: {broker: {condition: service_healthy}}
     deploy: {replicas: 3}
 
   controller:
     build: .
     command: python -u /controller.py
-    depends_on: {broker: {condition: service_healthy}}
+    restart: "no"
+    depends_on:
+      broker: {condition: service_healthy}
+      worker: {condition: service_started}
